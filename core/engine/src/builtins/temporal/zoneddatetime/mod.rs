@@ -1614,7 +1614,7 @@ impl ZonedDateTime {
     /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/ZonedDateTime/toLocaleString
     fn to_locale_string(
         this: &JsValue,
-        _args: &[JsValue],
+        args: &[JsValue],
         context: &mut Context,
     ) -> JsResult<JsValue> {
         // 1. Let zonedDateTime be the this value.
@@ -1630,11 +1630,11 @@ impl ZonedDateTime {
         #[cfg(feature = "intl")]
         {
             use crate::builtins::intl::date_time_format::{
-                FormatDefaults, FormatType, create_date_time_format,
+                FormatDefaults, FormatType, create_date_time_format, format_date_time,
             };
             // 3. Let dateTimeFormat be ? CreateDateTimeFormat(%Intl.DateTimeFormat%, locales, options, any, all, zonedDateTime.[[TimeZone]]).
-            let locales = _args.get_or_undefined(0);
-            let options = _args.get_or_undefined(1);
+            let locales = args.get_or_undefined(0);
+            let options = args.get_or_undefined(1);
 
             let dtf = create_date_time_format(
                 locales,
@@ -1653,8 +1653,10 @@ impl ZonedDateTime {
                     js_error!(RangeError: "calendars {} and {} aren't compatible", zdt_cal.identifier(), dtf_cal.as_str()),
                 );
             }
-
-            Ok(JsValue::null())
+            // 5. Let instant be ! CreateTemporalInstant(zonedDateTime.[[EpochNanoseconds]]).
+            // 6. Return ? FormatDateTime(dateTimeFormat, instant).
+            let inst = create_temporal_instant(zdt.inner.to_instant(), None, context)?;
+            format_date_time(&dtf, &inst, context)
         }
 
         #[cfg(not(feature = "intl"))]
