@@ -564,33 +564,23 @@ pub(crate) fn create_date_time_format(
     let requested_locales = canonicalize_locale_list(locales, context)?;
     // 3. Set options to ? CoerceOptionsToObject(options).
     let options = coerce_options_to_object(options, context)?;
-    // ResolveOptions 4. Let matcher be ? GetOption(options, "localeMatcher", string, « "lookup", "best fit" », "best fit").
+    // 4. Let opt be a new Record.
+    let mut opt = IntlOptions::<DateTimeFormatterPreferences>::default();
+
+    // 5. Let matcher be ? GetOption(options, "localeMatcher", string, « "lookup", "best fit" », "best fit").
     let matcher = get_option(&options, js_string!("localeMatcher"), context)?.unwrap_or_default();
-
-    // NOTE: We unroll the below const loop in step 6 using the
-    // ResolutionOptionDescriptors from the internal slots
-    // https://tc39.es/ecma402/#sec-intl.datetimeformat-internal-slots
-    let mut preferences = DateTimeFormatterPreferences::default();
-
-    // 6. For each Resolution Option Descriptor desc of constructor.[[ResolutionOptionDescriptors]], do
-    // a. If desc has a [[Type]] field, let type be desc.[[Type]]. Otherwise, let type be string.
-    // b. If desc has a [[Values]] field, let values be desc.[[Values]]. Otherwise, let values be empty.
-    // c. Let value be ? GetOption(options, desc.[[Property]], type, values, undefined).
-    // d. If value is not undefined, then
-    // i. Set value to ! ToString(value).
-    // ii. If value cannot be matched by the type Unicode locale nonterminal, throw a RangeError exception.
-    // e. Let key be desc.[[Key]].
-    // f. Set opt.[[<key>]] to value.
+    // 6. Set opt.[[localeMatcher]] to matcher.
+    opt.matcher = matcher;
 
     // Handle { [[Key]]: "ca", [[Property]]: "calendar" }
-    preferences.calendar_algorithm =
+    opt.preferences.calendar_algorithm =
         get_option::<Value>(&options, js_string!("calendar"), context)?
             .map(|ca| CalendarAlgorithm::try_from(&ca))
             .transpose()
             .map_err(|_icu4x_error| js_error!(RangeError: "unknown calendar algorithm"))?;
 
     // { [[Key]]: "nu", [[Property]]: "numberingSystem" }
-    preferences.numbering_system =
+    opt.preferences.numbering_system =
         get_option::<Value>(&options, js_string!("numberingSystem"), context)?
             .map(NumberingSystem::try_from)
             .transpose()
@@ -600,7 +590,7 @@ pub(crate) fn create_date_time_format(
     let hour_12 = get_option::<bool>(&options, js_string!("hour12"), context)?;
 
     // { [[Key]]: "hc", [[Property]]: "hourCycle", [[Values]]: « "h11", "h12", "h23", "h24" » }
-    preferences.hour_cycle =
+    opt.preferences.hour_cycle =
         get_option::<options::HourCycle>(&options, js_string!("hourCycle"), context)?
             .map(|hc| {
                 // Handle steps 3.a-c here
@@ -615,18 +605,10 @@ pub(crate) fn create_date_time_format(
             .map_err(|_icu4x_error| js_error!(RangeError: "unknown hour cycle"))?
             .flatten();
 
-    let mut intl_options = IntlOptions {
-        matcher,
-        preferences,
-    };
-
     // ResolveOptions 8. Let resolution be ResolveLocale(constructor.[[AvailableLocales]], requestedLocales,
     // opt, constructor.[[RelevantExtensionKeys]], localeData).
-    let resolved_locale = resolve_locale::<DateTimeFormat>(
-        requested_locales,
-        &mut intl_options,
-        context.intl_provider(),
-    )?;
+    let resolved_locale =
+        resolve_locale::<DateTimeFormat>(requested_locales, &mut opt, context.intl_provider())?;
 
     // TODO: The resolved calendar, numbering system, and hour cycle should come from
     // the ICU4X locale resolution result, not hardcoded defaults. However, ICU4X does
@@ -634,22 +616,22 @@ pub(crate) fn create_date_time_format(
     // This means e.g. `new Intl.DateTimeFormat("ar").resolvedOptions().numberingSystem`
     // incorrectly returns "latn" instead of "arab".
     // Tracked at: unicode-org/icu4x#5868
-    if intl_options.preferences.calendar_algorithm.is_none() {
-        intl_options.preferences.calendar_algorithm = CalendarAlgorithm::try_from(
+    if opt.preferences.calendar_algorithm.is_none() {
+        opt.preferences.calendar_algorithm = CalendarAlgorithm::try_from(
             &Value::try_from_str("gregory").expect("'gregory' is a valid BCP 47 value"),
         )
         .ok();
     }
 
-    if intl_options.preferences.numbering_system.is_none() {
-        intl_options.preferences.numbering_system = NumberingSystem::try_from(
+    if opt.preferences.numbering_system.is_none() {
+        opt.preferences.numbering_system = NumberingSystem::try_from(
             Value::try_from_str("latn").expect("'latn' is a valid BCP 47 value"),
         )
         .ok();
     }
 
-    if intl_options.preferences.hour_cycle.is_none() {
-        intl_options.preferences.hour_cycle = IcuHourCycle::try_from(
+    if opt.preferences.hour_cycle.is_none() {
+        opt.preferences.hour_cycle = IcuHourCycle::try_from(
             &Value::try_from_str("h12").expect("'h12' is a valid BCP 47 value"),
         )
         .ok();
@@ -734,7 +716,8 @@ pub(crate) fn create_date_time_format(
     //         d. Set formatOptions.[[<prop>]] to value.
     //         e. If value is not undefined, then
     //                i. Set hasExplicitFormatComponents to true.
-    let mut format_options = FormatOptions::try_init(&options, preferences.hour_cycle, context)?;
+    let mut format_options =
+        FormatOptions::try_init(&options, opt.preferences.hour_cycle, context)?;
 
     // TODO: how should formatMatcher be used?
     // 25. Let formatMatcher be ? GetOption(options, "formatMatcher", string, « "basic", "best fit" », "best fit").
@@ -826,9 +809,9 @@ pub(crate) fn create_date_time_format(
 
     Ok(DateTimeFormat {
         locale: resolved_locale,
-        calendar_algorithm: intl_options.preferences.calendar_algorithm,
-        numbering_system: intl_options.preferences.numbering_system,
-        hour_cycle: intl_options.preferences.hour_cycle,
+        calendar_algorithm: opt.preferences.calendar_algorithm,
+        numbering_system: opt.preferences.numbering_system,
+        hour_cycle: opt.preferences.hour_cycle,
         date_style,
         time_style,
         fractional_second_digits: format_options.fractional_second_digits(),
