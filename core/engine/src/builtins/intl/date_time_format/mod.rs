@@ -640,7 +640,10 @@ pub(crate) fn create_date_time_format(
         get_option::<Value>(&options, js_string!("calendar"), context)?
             .and_then(|ca| CalendarAlgorithm::try_from(&ca).ok());
 
-    // { [[Key]]: "nu", [[Property]]: "numberingSystem" }
+    // 10. Let numberingSystem be ? GetOption(options, "numberingSystem", string, empty, undefined).
+    // 11. If numberingSystem is not undefined, then
+    //     a. If numberingSystem cannot be matched by the type Unicode locale nonterminal, throw a RangeError exception.
+    // 12. Set opt.[[nu]] to numberingSystem.
     opt.preferences.numbering_system =
         get_option::<Value>(&options, js_string!("numberingSystem"), context)?
             .map(NumberingSystem::try_from)
