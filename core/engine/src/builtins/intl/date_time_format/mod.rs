@@ -559,20 +559,10 @@ pub(crate) fn create_date_time_format(
     // 1. Let dateTimeFormat be ? OrdinaryCreateFromConstructor(newTarget, "%Intl.DateTimeFormat.prototype%",
     // « [[InitializedDateTimeFormat]], [[Locale]], [[Calendar]], [[NumberingSystem]], [[TimeZone]],
     // [[HourCycle]], [[DateStyle]], [[TimeStyle]], [[DateTimeFormat]], [[BoundFormat]] »).
-    // 2. Let hour12 be undefined. <- TODO
-    // 3. Let modifyResolutionOptions be a new Abstract Closure with parameters (options) that captures hour12 and performs the following steps when called:
-    //        a. Set hour12 to options.[[hour12]].
-    //        b. Remove field [[hour12]] from options.
-    //        c. If hour12 is not undefined, set options.[[hc]] to null.
-    // 4. Let optionsResolution be ? ResolveOptions(%Intl.DateTimeFormat%, %Intl.DateTimeFormat%.[[LocaleData]],
-    // locales, options, « coerce-options », modifyResolutionOptions).
-    //
-    // NOTE: We inline ResolveOptions here. (Could be worked into an abstract operation util function)
-    // ResolveOptions 1. Let requestedLocales be ? CanonicalizeLocaleList(locales).
+
+    // 2. Let requestedLocales be ? CanonicalizeLocaleList(locales).
     let requested_locales = canonicalize_locale_list(locales, context)?;
-    // NOTE: skip ResolveOptions 2, which is based on `REQUIRE-OPTIONS` vs `COERCE-OPTIONS`
-    // ResolveOptions 3. If specialBehaviours is present and contains coerce-options,
-    // set options to ? CoerceOptionsToObject(options). Otherwise, set options to ? GetOptionsObject(options).
+    // 3. Set options to ? CoerceOptionsToObject(options).
     let options = coerce_options_to_object(options, context)?;
     // ResolveOptions 4. Let matcher be ? GetOption(options, "localeMatcher", string, « "lookup", "best fit" », "best fit").
     let matcher = get_option(&options, js_string!("localeMatcher"), context)?.unwrap_or_default();
