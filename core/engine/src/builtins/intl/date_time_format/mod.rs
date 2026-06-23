@@ -190,6 +190,7 @@ impl BuiltInConstructor for DateTimeFormat {
             options,
             FormatType::Any,
             FormatDefaults::Date,
+            None,
             context,
         )?;
         let date_time_format = JsObject::from_proto_and_data(prototype, dtf);
@@ -550,6 +551,7 @@ pub(crate) fn create_date_time_format(
     options: &JsValue,
     date_time_format_type: FormatType,
     defaults: FormatDefaults,
+    to_locale_string_timezone: Option<temporal_rs::TimeZone>,
     context: &mut Context,
 ) -> JsResult<DateTimeFormat> {
     // NOTE: The below step's code was moved out into constructor to prevent unnecessary JsObject allocation when we create dtf internally
