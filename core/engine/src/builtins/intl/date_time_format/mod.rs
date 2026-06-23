@@ -533,9 +533,18 @@ impl ToLocalTime {
 
 // ==== Abstract Operations ====
 
-/// Creates a [`DateTimeFormat`] struct (internal slots only). The constructor wraps this in a
-/// `JsObject` with the correct prototype; Date.prototype.toLocaleString (and friends) use it
-/// directly with [`format_timestamp_with_dtf`] without allocating a JS object.
+/// Abstract operation [`CreateDateTimeFormat ( newTarget, locales, options, required, defaults [ , toLocaleStringTimeZone ] )`][spec]
+///
+/// The abstract operation `CreateDateTimeFormat` takes arguments newTarget (a constructor), locales (an
+/// ECMAScript language value), options (an ECMAScript language value), required (date, time, or any), and defaults
+/// (date, time, or all) and optional argument toLocaleStringTimeZone (a primary time zone identifier) and returns
+/// either a normal completion containing a `DateTimeFormat` object or a throw completion.
+///
+/// If the additional toLocaleStringTimeZone argument is provided, the time zone will be overridden and some
+/// adjustments will be made to the defaults in order to implement the behaviour of
+/// Temporal.ZonedDateTime.prototype.toLocaleString.
+///
+/// [spec]: https://tc39.es/proposal-temporal/#sec-createdatetimeformat
 pub(crate) fn create_date_time_format(
     locales: &JsValue,
     options: &JsValue,
@@ -972,7 +981,7 @@ pub(crate) enum FormatDefaults {
     All,
 }
 
-/// Abstract operation [`UnwrapDateTimeFormat ( dtf )`][spec].
+/// Abstract operation [`UnwrapDateTimeFormat ( dtf )`][spec]
 ///
 /// This also checks that the returned object is a `DateTimeFormat`, which skips the
 /// call to `RequireInternalSlot`.
