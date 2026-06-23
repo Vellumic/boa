@@ -572,7 +572,10 @@ pub(crate) fn create_date_time_format(
     // 6. Set opt.[[localeMatcher]] to matcher.
     opt.matcher = matcher;
 
-    // Handle { [[Key]]: "ca", [[Property]]: "calendar" }
+    // 7. Let calendar be ? GetOption(options, "calendar", string, empty, undefined).
+    // 8. If calendar is not undefined, then
+    //    a. If calendar cannot be matched by the type Unicode locale nonterminal, throw a RangeError exception.
+    // 9. Set opt.[[ca]] to calendar.
     opt.preferences.calendar_algorithm =
         get_option::<Value>(&options, js_string!("calendar"), context)?
             .map(|ca| CalendarAlgorithm::try_from(&ca))
