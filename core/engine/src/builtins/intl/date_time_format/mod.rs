@@ -582,7 +582,10 @@ pub(crate) fn create_date_time_format(
             .transpose()
             .map_err(|_icu4x_error| js_error!(RangeError: "unknown calendar algorithm"))?;
 
-    // { [[Key]]: "nu", [[Property]]: "numberingSystem" }
+    // 10. Let numberingSystem be ? GetOption(options, "numberingSystem", string, empty, undefined).
+    // 11. If numberingSystem is not undefined, then
+    //     a. If numberingSystem cannot be matched by the type Unicode locale nonterminal, throw a RangeError exception.
+    // 12. Set opt.[[nu]] to numberingSystem.
     opt.preferences.numbering_system =
         get_option::<Value>(&options, js_string!("numberingSystem"), context)?
             .map(NumberingSystem::try_from)
