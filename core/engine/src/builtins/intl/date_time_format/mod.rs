@@ -650,14 +650,15 @@ pub(crate) fn create_date_time_format(
     // 22. Let (deferred) resolvedLocaleData be r.[[LocaleData]].
 
     // TODO: Handle hour12 and hc
-    // 12. If hour12 is true, then
+    // 23. If hour12 is true, then
     // a. Let hc be resolvedLocaleData.[[hourCycle12]].
-    // 13. Else if hour12 is false, then
+    // 24. Else if hour12 is false, then
     // a. Let hc be resolvedLocaleData.[[hourCycle24]].
-    // 14. Else,
+    // 25. Else,
     // a. Assert: hour12 is undefined.
     // b. Let hc be r.[[hc]].
     // c. If hc is null, set hc to resolvedLocaleData.[[hourCycle]].
+    // 26. Set (deferred) dateTimeFormat.[[HourCycle]] to hc.
 
     // 15. Let timeZone be ? Get(options, "timeZone").
     let time_zone = options.get(js_string!("timeZone"), context)?;
