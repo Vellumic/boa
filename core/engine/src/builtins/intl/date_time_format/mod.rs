@@ -612,10 +612,9 @@ pub(crate) fn create_date_time_format(
             .map_err(|_icu4x_error| js_error!(RangeError: "unknown hour cycle"))?
             .flatten();
 
-    // ResolveOptions 8. Let resolution be ResolveLocale(constructor.[[AvailableLocales]], requestedLocales,
-    // opt, constructor.[[RelevantExtensionKeys]], localeData).
-    let resolved_locale =
-        resolve_locale::<DateTimeFormat>(requested_locales, &mut opt, context.intl_provider())?;
+    // 17. Let r be ResolveLocale(%Intl.DateTimeFormat%.[[AvailableLocales]], requestedLocales,
+    // opt, %Intl.DateTimeFormat%.[[RelevantExtensionKeys]], %Intl.DateTimeFormat%.[[LocaleData]]).
+    let r = resolve_locale::<DateTimeFormat>(requested_locales, &mut opt, context.intl_provider())?;
 
     // TODO: The resolved calendar, numbering system, and hour cycle should come from
     // the ICU4X locale resolution result, not hardcoded defaults. However, ICU4X does
@@ -643,13 +642,12 @@ pub(crate) fn create_date_time_format(
         )
         .ok();
     }
-    // 5. Set options to optionsResolution.[[Options]].
-    // 6. Let r be optionsResolution.[[ResolvedLocale]].
-    // 7. Set (deferred) dateTimeFormat.[[Locale]] to r.[[Locale]].
-    // 8. Let (deferred) resolvedCalendar be r.[[ca]].
-    // 9. Set (deferred) dateTimeFormat.[[Calendar]] to resolvedCalendar.
-    // 10. Set (deferred) dateTimeFormat.[[NumberingSystem]] to r.[[nu]].
-    // 11. Let (deferred) resolvedLocaleData be r.[[LocaleData]].
+
+    // 18. Set (deferred) dateTimeFormat.[[Locale]] to r.[[Locale]].
+    // 19. Let (deferred) resolvedCalendar be r.[[ca]].
+    // 20. Set (deferred) dateTimeFormat.[[Calendar]] to resolvedCalendar.
+    // 21. Set (deferred) dateTimeFormat.[[NumberingSystem]] to r.[[nu]].
+    // 22. Let (deferred) resolvedLocaleData be r.[[LocaleData]].
 
     // TODO: Handle hour12 and hc
     // 12. If hour12 is true, then
@@ -809,13 +807,13 @@ pub(crate) fn create_date_time_format(
     // 34. Return dateTimeFormat.
     let formatter = DateTimeFormatter::try_new_with_buffer_provider(
         context.intl_provider().erased_provider(),
-        resolved_locale.clone().into(),
+        r.clone().into(),
         fieldset,
     )
     .map_err(|e| JsNativeError::range().with_message(format!("failed to load formatter: {e}")))?;
 
     Ok(DateTimeFormat {
-        locale: resolved_locale,
+        locale: r,
         calendar_algorithm: opt.preferences.calendar_algorithm,
         numbering_system: opt.preferences.numbering_system,
         hour_cycle: opt.preferences.hour_cycle,
