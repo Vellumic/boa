@@ -56,6 +56,7 @@ use icu_time::{
     TimeZoneInfo, ZonedDateTime,
     zone::{IanaParser, models::Base},
 };
+use temporal_rs::host::HostHooks;
 use timezone_provider::provider::TimeZoneId;
 
 mod options;
@@ -551,7 +552,7 @@ pub(crate) fn create_date_time_format(
     options: &JsValue,
     date_time_format_type: FormatType,
     defaults: FormatDefaults,
-    to_locale_string_timezone: Option<temporal_rs::TimeZone>,
+    to_locale_string_timezone: Option<JsString>,
     context: &mut Context,
 ) -> JsResult<DateTimeFormat> {
     // NOTE: The below step's code was moved out into constructor to prevent unnecessary JsObject allocation when we create dtf internally
@@ -660,17 +661,31 @@ pub(crate) fn create_date_time_format(
     // c. If hc is null, set hc to resolvedLocaleData.[[hourCycle]].
     // 26. Set (deferred) dateTimeFormat.[[HourCycle]] to hc.
 
-    // 15. Let timeZone be ? Get(options, "timeZone").
+    // 27. Let timeZone be ? Get(options, "timeZone").
     let time_zone = options.get(js_string!("timeZone"), context)?;
 
-    // 16. If timeZone is undefined, then
+    // 28. If timeZone is undefined, then
     let time_zone = if time_zone.is_undefined() {
-        // TODO (nekevss): Resolve system time zone
-        // a. Set timeZone to SystemTimeZoneIdentifier().
-        JsString::from("Etc/UTC")
-    // 17. Else,
+        // a. If toLocaleStringTimeZone is present, then
+        if let Some(tz) = to_locale_string_timezone {
+            // i. Set timeZone to toLocaleStringTimeZone.
+            tz
+        // b. Else,
+        } else {
+            // b. Set timeZone to SystemTimeZoneIdentifier().
+            let context: &Context = context;
+            let time_zone = context.get_system_time_zone(context.timezone_provider())?;
+            JsString::from(time_zone.identifier_with_provider(context.timezone_provider())?)
+        }
+    // 29. Else,
     } else {
-        // a. Set timeZone to ? ToString(timeZone).
+        // a. If toLocaleStringTimeZone is present, throw a TypeError exception.
+        if to_locale_string_timezone.is_some() {
+            return Err(
+                js_error!(TypeError: "can't set option timeZone when Temporal.ZonedDateTime.toLocaleString is used"),
+            );
+        }
+        // b. Set timeZone to ? ToString(timeZone).
         time_zone.to_string(context)?
     };
     // 18. If IsTimeZoneOffsetString(timeZone) is true, then
