@@ -592,15 +592,16 @@ pub(crate) fn create_date_time_format(
             .transpose()
             .map_err(|_icu4x_error| js_error!(RangeError: "unknown numbering system"))?;
 
-    // { [[Key]]: "hour12", [[Property]]: "hour12", [[Type]]: boolean }
+    // 13. Let hour12 be ? GetOption(options, "hour12", boolean, empty, undefined).
     let hour_12 = get_option::<bool>(&options, js_string!("hour12"), context)?;
 
-    // { [[Key]]: "hc", [[Property]]: "hourCycle", [[Values]]: « "h11", "h12", "h23", "h24" » }
+    // 14. Let hourCycle be ? GetOption(options, "hourCycle", string, « "h11", "h12", "h23", "h24" », undefined).
+    // 15. If hour12 is not undefined, then
+    //     a. Set hourCycle to null.
+    // 16. Set opt.[[hc]] to hourCycle.
     opt.preferences.hour_cycle =
         get_option::<options::HourCycle>(&options, js_string!("hourCycle"), context)?
             .map(|hc| {
-                // Handle steps 3.a-c here
-                // c. If hour12 is not undefined, set options.[[hc]] to null.
                 if hour_12.is_some() {
                     Ok(None)
                 } else {
