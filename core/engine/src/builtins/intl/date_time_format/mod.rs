@@ -672,7 +672,7 @@ pub(crate) fn create_date_time_format(
             tz
         // b. Else,
         } else {
-            // b. Set timeZone to SystemTimeZoneIdentifier().
+            // i. Set timeZone to SystemTimeZoneIdentifier().
             let context: &Context = context;
             let time_zone = context.get_system_time_zone(context.timezone_provider())?;
             JsString::from(time_zone.identifier_with_provider(context.timezone_provider())?)
@@ -688,39 +688,37 @@ pub(crate) fn create_date_time_format(
         // b. Set timeZone to ? ToString(timeZone).
         time_zone.to_string(context)?
     };
-    // 18. If IsTimeZoneOffsetString(timeZone) is true, then
+
+    // 30. If IsTimeZoneOffsetString(timeZone) is true, then
     let time_zone_string = time_zone.to_std_string_escaped();
     // Note: Should a timezone enum be part of temporal_rs, icu_time, or an ECMA402 wrapper lib
     let time_zone = if let Ok(utc_offset) = UtcOffset::try_from_str(&time_zone_string) {
-        //  a. Let parseResult be ParseText(StringToCodePoints(timeZone), UTCOffset).
-        //  b. Assert: parseResult is a Parse Node.
-        //  c. If parseResult contains more than one MinuteSecond Parse Node, throw a RangeError exception.
-        //  d. Let offsetNanoseconds be ParseTimeZoneOffsetString(timeZone).
-        //  e. Let offsetMinutes be offsetNanoseconds / (6 × 10**10).
-        //  f. Assert: offsetMinutes is an integer.
-        //  g. Set timeZone to FormatOffsetTimeZoneIdentifier(offsetMinutes).
+        // a. Let parseResult be ParseText(StringToCodePoints(timeZone), UTCOffset[~SubMinutePrecision]).
+        // b. Assert: parseResult is a Parse Node.
+        // c. Let offsetNanoseconds be ? ParseDateTimeUTCOffset(timeZone).
+        // d. Let offsetMinutes be offsetNanoseconds / (6 × 10**10).
+        // e. Assert: offsetMinutes is an integer.
+        // f. Set timeZone to FormatOffsetTimeZoneIdentifier(offsetMinutes).
         FormatTimeZone::UtcOffset(utc_offset)
+    // 31. Else,
     } else {
-        // 19. Else,
-        //  a. Let timeZoneIdentifierRecord be GetAvailableNamedTimeZoneIdentifier(timeZone).
-        //  b. If timeZoneIdentifierRecord is empty, throw a RangeError exception.
-        //  c. Set timeZone to timeZoneIdentifierRecord.[[PrimaryIdentifier]].
+        // a. Let timeZoneIdentifierRecord be GetAvailableNamedTimeZoneIdentifier(timeZone).
+        // b. If timeZoneIdentifierRecord is empty, then
+        //     i. Throw a RangeError exception.
+        // c. Set timeZone to timeZoneIdentifierRecord.[[Identifier]].
         let parser =
             IanaParser::try_new_with_buffer_provider(context.intl_provider().erased_provider())
-                .map_err(|_| {
-                    JsNativeError::error().with_message("Failed to init time zone data provider")
-                })?;
+                .map_err(|_| js_error!(Error: "failed to init time zone data provider"))?;
         let time_zone = parser.as_borrowed().parse(&time_zone_string);
         let time_zone_id = context
             .timezone_provider()
             .get(time_zone_string.as_bytes())
-            .map_err(|_| {
-                JsNativeError::range()
-                    .with_message(format!("{time_zone_string:#?} was not a valid time zone."))
-            })?;
+            .map_err(
+                |_| js_error!(RangeError: "{:#?} was not a valid time zone.", time_zone_string),
+            )?;
         FormatTimeZone::Identifier((time_zone, time_zone_id))
     };
-    // 20. (deferred) Set dateTimeFormat.[[TimeZone]] to timeZone.
+    // 32. (deferred) Set dateTimeFormat.[[TimeZone]] to timeZone.
 
     // 21. Let formatOptions be a new Record.
     // 22. Set formatOptions.[[hourCycle]] to hc.
