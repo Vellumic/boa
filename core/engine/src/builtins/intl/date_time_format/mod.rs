@@ -51,7 +51,10 @@ use icu_datetime::{
 };
 use icu_decimal::preferences::NumberingSystem;
 use icu_decimal::provider::DecimalSymbolsV1;
-use icu_locale::{Locale, extensions::unicode::Value};
+use icu_locale::{
+    Locale,
+    extensions::unicode::{Key, Value},
+};
 use icu_time::{
     TimeZoneInfo, ZonedDateTime,
     zone::{IanaParser, models::Base},
@@ -720,12 +723,11 @@ pub(crate) fn create_date_time_format(
     };
     // 32. (deferred) Set dateTimeFormat.[[TimeZone]] to timeZone.
 
-    // 21. Let formatOptions be a new Record.
-    // 22. Set formatOptions.[[hourCycle]] to hc.
-    // 23. Let hasExplicitFormatComponents be false.
-
-    // NOTE (nekevss): Step 24 is adopted in the `FormatOptions`
-    // 24. For each row of Table 16, except the header row, in table order, do
+    // 33. Let formatOptions be a new Record.
+    // 34. Set formatOptions.[[hourCycle]] to hc.
+    // 35. Let hasExplicitFormatComponents be false.
+    // NOTE (nekevss): Step 36 is adopted in the `FormatOptions`
+    // 36. For each row of Table 16, except the header row, in table order, do
     //         a. Let prop be the name given in the Property column of the current row.
     //         b. If prop is "fractionalSecondDigits", then
     //                i. Let value be ? GetNumberOption(options, "fractionalSecondDigits", 1, 3, undefined).
@@ -739,16 +741,20 @@ pub(crate) fn create_date_time_format(
         FormatOptions::try_init(&options, opt.preferences.hour_cycle, context)?;
 
     // TODO: how should formatMatcher be used?
-    // 25. Let formatMatcher be ? GetOption(options, "formatMatcher", string, « "basic", "best fit" », "best fit").
+    // 37. Let formatMatcher be ? GetOption(options, "formatMatcher", string, « "basic", "best fit" », "best fit").
     let format_matcher =
         get_option::<FormatMatcher>(&options, js_string!("formatMatcher"), context)?
             .unwrap_or(FormatMatcher::BestFit);
-    // 26. Let dateStyle be ? GetOption(options, "dateStyle", string, « "full", "long", "medium", "short" », undefined).
+
+    // 38. Let dateStyle be ? GetOption(options, "dateStyle", string, « "full", "long", "medium", "short" », undefined).
     let date_style = get_option::<DateStyle>(&options, js_string!("dateStyle"), context)?;
-    // 27. Set dateTimeFormat.[[DateStyle]] to dateStyle.
-    // 28. Let timeStyle be ? GetOption(options, "timeStyle", string, « "full", "long", "medium", "short" », undefined).
+    // 39. Set (deferred) dateTimeFormat.[[DateStyle]] to dateStyle.
+
+    // 40. Let timeStyle be ? GetOption(options, "timeStyle", string, « "full", "long", "medium", "short" », undefined).
     let time_style = get_option::<TimeStyle>(&options, js_string!("timeStyle"), context)?;
-    // 29. (deferred) Set dateTimeFormat.[[TimeStyle]] to timeStyle.
+    // 41. Set (deferred) dateTimeFormat.[[TimeStyle]] to timeStyle.
+    // 42. Let formats be resolvedLocaleData.[[formats]].[[<resolvedCalendar>]].
+
     // 30. If dateStyle is not undefined or timeStyle is not undefined, then
     let fieldset = if date_style.is_some() || time_style.is_some() {
         // a. If hasExplicitFormatComponents is true, then
