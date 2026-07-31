@@ -51,10 +51,7 @@ use icu_datetime::{
 };
 use icu_decimal::preferences::NumberingSystem;
 use icu_decimal::provider::DecimalSymbolsV1;
-use icu_locale::{
-    Locale,
-    extensions::unicode::{Key, Value},
-};
+use icu_locale::{Locale, extensions::unicode::Value};
 use icu_time::{
     TimeZoneInfo, ZonedDateTime,
     zone::{IanaParser, models::Base},
@@ -685,7 +682,7 @@ pub(crate) fn create_date_time_format(
         // a. If toLocaleStringTimeZone is present, throw a TypeError exception.
         if to_locale_string_timezone.is_some() {
             return Err(
-                js_error!(TypeError: "can't set option timeZone when Temporal.ZonedDateTime.toLocaleString is used"),
+                js_error!(TypeError: "cannot set option timeZone when Temporal.ZonedDateTime.toLocaleString is used"),
             );
         }
         // b. Set timeZone to ? ToString(timeZone).
@@ -755,7 +752,7 @@ pub(crate) fn create_date_time_format(
     // 41. Set (deferred) dateTimeFormat.[[TimeStyle]] to timeStyle.
     // 42. Let formats be resolvedLocaleData.[[formats]].[[<resolvedCalendar>]].
 
-    // 30. If dateStyle is not undefined or timeStyle is not undefined, then
+    // 43. If dateStyle is not undefined or timeStyle is not undefined, then
     let fieldset = if date_style.is_some() || time_style.is_some() {
         // a. If hasExplicitFormatComponents is true, then
         if format_options.has_explicit_format_components() {
@@ -778,13 +775,39 @@ pub(crate) fn create_date_time_format(
                 js_error!(TypeError: "dateStyle cannot be defined for a time DateTimeFormat"),
             );
         }
-        // TODO (nekevss): implement d-e
+        // TODO: implement d-k
         // TODO (nekevss): Do we have access to the styles?
         // d. Let styles be resolvedLocaleData.[[styles]].[[<resolvedCalendar>]].
         // e. Let bestFormat be DateTimeStyleFormat(dateStyle, timeStyle, styles).
         date_time_style_format(date_style, time_style)?
-    // 31. Else,
+        // f. If dateStyle is not undefined, then
+        // i. Set dateTimeFormat.[[TemporalPlainDateFormat]] to AdjustDateTimeStyleFormat(formats, bestFormat, formatMatcher, « "weekday", "era", "year", "month", "day" »).
+        // ii. Set dateTimeFormat.[[TemporalPlainYearMonthFormat]] to AdjustDateTimeStyleFormat(formats, bestFormat, formatMatcher, « "era", "year", "month" »).
+        // iii. Set dateTimeFormat.[[TemporalPlainMonthDayFormat]] to AdjustDateTimeStyleFormat(formats, bestFormat, formatMatcher, « "month", "day" »).
+        // g. Else,
+        // i. Set dateTimeFormat.[[TemporalPlainDateFormat]] to null.
+        // ii. Set dateTimeFormat.[[TemporalPlainYearMonthFormat]] to null.
+        // iii. Set dateTimeFormat.[[TemporalPlainMonthDayFormat]] to null.
+        // h. If timeStyle is not undefined, then
+        // i. Set dateTimeFormat.[[TemporalPlainTimeFormat]] to AdjustDateTimeStyleFormat(formats, bestFormat, formatMatcher, « "dayPeriod", "hour", "minute", "second", "fractionalSecondDigits" »).
+        // i. Else,
+        // i. Set dateTimeFormat.[[TemporalPlainTimeFormat]] to null.
+        // j. Set dateTimeFormat.[[TemporalPlainDateTimeFormat]] to AdjustDateTimeStyleFormat(formats, bestFormat, formatMatcher, « "weekday", "era", "year", "month", "day", "dayPeriod", "hour", "minute", "second", "fractionalSecondDigits" »).
+        // k. Set dateTimeFormat.[[TemporalInstantFormat]] to bestFormat.
+        // 44. Else,
     } else {
+        // a. Let bestFormat be GetDateTimeFormat(formats, formatMatcher, formatOptions, required, defaults, all).
+        // b. Set dateTimeFormat.[[TemporalPlainDateFormat]] to GetDateTimeFormat(formats, formatMatcher, formatOptions, date, date, relevant).
+        // c. Set dateTimeFormat.[[TemporalPlainYearMonthFormat]] to GetDateTimeFormat(formats, formatMatcher, formatOptions, year-month, year-month, relevant).
+        // d. Set dateTimeFormat.[[TemporalPlainMonthDayFormat]] to GetDateTimeFormat(formats, formatMatcher, formatOptions, month-day, month-day, relevant).
+        // e. Set dateTimeFormat.[[TemporalPlainTimeFormat]] to GetDateTimeFormat(formats, formatMatcher, formatOptions, time, time, relevant).
+        // f. Set dateTimeFormat.[[TemporalPlainDateTimeFormat]] to GetDateTimeFormat(formats, formatMatcher, formatOptions, any, all, relevant).
+        // g. If toLocaleStringTimeZone is present, then
+        // i. Set dateTimeFormat.[[TemporalInstantFormat]] to GetDateTimeFormat(formats, formatMatcher, formatOptions, any, zoned-date-time, all).
+        // h. Else,
+        // i. Set dateTimeFormat.[[TemporalInstantFormat]] to GetDateTimeFormat(formats, formatMatcher, formatOptions, any, all, all).
+
+        // NOTE: The below is temporally preserved 'as-is' for proper work. This is about to be delete in the near future
         // a. Let needDefaults be true.
         // b. If required is date or any, then
         // i. For each property name prop of « "weekday", "year", "month", "day" », do
@@ -821,10 +844,8 @@ pub(crate) fn create_date_time_format(
             }
         }
     };
-    // 32. Set dateTimeFormat.[[DateTimeFormat]] to bestFormat.
-    // 33. If bestFormat has a field [[hour]], then
-    // a. Set dateTimeFormat.[[HourCycle]] to hc.
-    // 34. Return dateTimeFormat.
+    // 44. Set (deferred) dateTimeFormat.[[DateTimeFormat]] to bestFormat.
+
     let formatter = DateTimeFormatter::try_new_with_buffer_provider(
         context.intl_provider().erased_provider(),
         r.clone().into(),
@@ -832,6 +853,7 @@ pub(crate) fn create_date_time_format(
     )
     .map_err(|e| JsNativeError::range().with_message(format!("failed to load formatter: {e}")))?;
 
+    // 45. Return dateTimeFormat.
     Ok(DateTimeFormat {
         locale: r,
         calendar_algorithm: opt.preferences.calendar_algorithm,
