@@ -629,9 +629,8 @@ pub(crate) fn create_date_time_format(
     let mut opt = IntlOptions::<DateTimeFormatterPreferences>::default();
 
     // 5. Let matcher be ? GetOption(options, "localeMatcher", string, « "lookup", "best fit" », "best fit").
-    let matcher = get_option(&options, js_string!("localeMatcher"), context)?.unwrap_or_default();
     // 6. Set opt.[[localeMatcher]] to matcher.
-    opt.matcher = matcher;
+    opt.matcher = get_option(&options, js_string!("localeMatcher"), context)?.unwrap_or_default();
 
     // 7. Let calendar be ? GetOption(options, "calendar", string, empty, undefined).
     // 8. If calendar is not undefined, then
@@ -696,11 +695,11 @@ pub(crate) fn create_date_time_format(
         .ok();
     }
 
-    // 18. Set (deferred) dateTimeFormat.[[Locale]] to r.[[Locale]].
-    // 19. Let (deferred) resolvedCalendar be r.[[ca]].
-    // 20. Set (deferred) dateTimeFormat.[[Calendar]] to resolvedCalendar.
-    // 21. Set (deferred) dateTimeFormat.[[NumberingSystem]] to r.[[nu]].
-    // 22. Let (deferred) resolvedLocaleData be r.[[LocaleData]].
+    // 18. (deferred) Set dateTimeFormat.[[Locale]] to r.[[Locale]].
+    // 19. (deferred) Let resolvedCalendar be r.[[ca]].
+    // 20. (deferred) Set dateTimeFormat.[[Calendar]] to resolvedCalendar.
+    // 21. (deferred) Set dateTimeFormat.[[NumberingSystem]] to r.[[nu]].
+    // 22. (deferred) Let resolvedLocaleData be r.[[LocaleData]].
 
     // TODO: Handle hour12 and hc
     // 23. If hour12 is true, then
@@ -711,7 +710,7 @@ pub(crate) fn create_date_time_format(
     // a. Assert: hour12 is undefined.
     // b. Let hc be r.[[hc]].
     // c. If hc is null, set hc to resolvedLocaleData.[[hourCycle]].
-    // 26. Set (deferred) dateTimeFormat.[[HourCycle]] to hc.
+    // 26. (deferred) Set dateTimeFormat.[[HourCycle]] to hc.
 
     // 27. Let timeZone be ? Get(options, "timeZone").
     let time_zone = options.get(js_string!("timeZone"), context)?;
@@ -775,7 +774,7 @@ pub(crate) fn create_date_time_format(
     // 33. Let formatOptions be a new Record.
     // 34. Set formatOptions.[[hourCycle]] to hc.
     // 35. Let hasExplicitFormatComponents be false.
-    // NOTE (nekevss): Step 36 is adopted in the `FormatOptions`
+    // NOTE: Step 36 is adopted in the `FormatOptions`
     // 36. For each row of Table 16, except the header row, in table order, do
     //         a. Let prop be the name given in the Property column of the current row.
     //         b. If prop is "fractionalSecondDigits", then
@@ -797,11 +796,11 @@ pub(crate) fn create_date_time_format(
 
     // 38. Let dateStyle be ? GetOption(options, "dateStyle", string, « "full", "long", "medium", "short" », undefined).
     let date_style = get_option::<FieldStyle>(&options, js_string!("dateStyle"), context)?;
-    // 39. Set (deferred) dateTimeFormat.[[DateStyle]] to dateStyle.
+    // 39. (deferred) Set dateTimeFormat.[[DateStyle]] to dateStyle.
 
     // 40. Let timeStyle be ? GetOption(options, "timeStyle", string, « "full", "long", "medium", "short" », undefined).
     let time_style = get_option::<FieldStyle>(&options, js_string!("timeStyle"), context)?;
-    // 41. Set (deferred) dateTimeFormat.[[TimeStyle]] to timeStyle.
+    // 41. (deferred) Set dateTimeFormat.[[TimeStyle]] to timeStyle.
 
     let format_style = match (date_style, time_style) {
         (None, None) => None,
@@ -865,6 +864,7 @@ pub(crate) fn create_date_time_format(
         // i. Set dateTimeFormat.[[TemporalPlainTimeFormat]] to null.
         // j. Set dateTimeFormat.[[TemporalPlainDateTimeFormat]] to AdjustDateTimeStyleFormat(formats, bestFormat, formatMatcher, « "weekday", "era", "year", "month", "day", "dayPeriod", "hour", "minute", "second", "fractionalSecondDigits" »).
         // k. Set dateTimeFormat.[[TemporalInstantFormat]] to bestFormat.
+
         // 44. Else,
     } else {
         // a. Let bestFormat be GetDateTimeFormat(formats, formatMatcher, formatOptions, required, defaults, all).
